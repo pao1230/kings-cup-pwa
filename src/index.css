@@ -1,0 +1,69 @@
+/* System font stack only — no external font requests, so the app stays
+   100% offline (FR-5.2) and sends no data off-device (NFR-7). */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Design tokens (light default) ---------------------------------------- */
+:root {
+  --bg: 245 243 255; /* violet-tinted white */
+  --surface: 255 255 255;
+  --surface-2: 243 240 252;
+  --border: 226 220 244;
+  --text: 24 18 43;
+  --muted: 110 100 140;
+  --brand: 124 58 237; /* violet-600 */
+  --brand-strong: 91 33 182; /* violet-800 */
+  --danger: 220 38 38;
+}
+
+:root.dark {
+  --bg: 15 10 30; /* deep violet-black */
+  --surface: 28 20 48;
+  --surface-2: 38 28 62;
+  --border: 55 42 88;
+  --text: 240 236 252;
+  --muted: 165 155 190;
+  --brand: 167 139 250; /* violet-400 */
+  --brand-strong: 196 181 253;
+  --danger: 248 113 113;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+  font-family: system-ui, 'Segoe UI', 'Noto Sans Thai', 'Sarabun', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Respect reduced-motion at the OS level (works with FR-4.3 animation toggle). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Utility: min 48x48 tap target (NFR-5). */
+.tap {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+/* Safe-area padding for notched devices. */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vite
+
+# Local-only Claude Code settings (launch.json is shared intentionally)
+.claude/settings.local.json
