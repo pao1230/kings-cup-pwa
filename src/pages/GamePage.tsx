@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useGame } from '../store/gameStore';
 import { useRuleSets } from '../store/ruleSetStore';
 import { useSettings } from '../store/settingsStore';
 import { useT } from '../i18n/useT';
-import PlayingCard, { CardBack } from '../components/PlayingCard';
+import PlayingCard, { CardBack, ShuffleDeck } from '../components/PlayingCard';
 import { Button } from '../components/ui';
 import { useWakeLock } from '../lib/wakeLock';
 import { haptic, applyAlcoholFree } from '../lib/util';
-import { playDraw, playKing } from '../lib/sound';
+import { playDraw, playKing, playShuffle } from '../lib/sound';
 
 export default function GamePage() {
   const t = useT();
@@ -24,6 +24,10 @@ export default function GamePage() {
   // The game-over screen is a deliberate second step: the last (52nd) card and
   // its rule must be shown first, then the player advances to the summary.
   const [showGameOver, setShowGameOver] = useState(false);
+  // Brief riffle animation shown when a fresh deck is shuffled in.
+  const [shuffling, setShuffling] = useState(false);
+  const shuffleTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(shuffleTimer.current), []);
 
   useWakeLock(!!session && session.deck.length > 0);
 
@@ -48,7 +52,15 @@ export default function GamePage() {
   const onRestart = () => {
     setConfirmRestart(false);
     setShowGameOver(false);
-    if (activeRuleSetId) start(activeRuleSetId);
+    if (!activeRuleSetId) return;
+    start(activeRuleSetId); // deck is reshuffled here
+    if (settings.animationEnabled) {
+      setShuffling(true);
+      playShuffle(settings.soundEnabled);
+      haptic(settings.hapticEnabled, [8, 24, 8, 24]);
+      window.clearTimeout(shuffleTimer.current);
+      shuffleTimer.current = window.setTimeout(() => setShuffling(false), 850);
+    }
   };
 
   // Deck exhausted but the last card is still on screen (FR-1.8 happens next).
@@ -92,10 +104,13 @@ export default function GamePage() {
           <button
             type="button"
             onClick={deckEmpty ? finish : onDraw}
-            aria-label={deckEmpty ? t('game_finish') : t('game_draw')}
-            className="mx-auto block w-full max-w-[16rem] flex-shrink-0 rounded-3xl transition active:scale-[0.97] cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+            disabled={shuffling}
+            aria-label={shuffling ? t('game_shuffling') : deckEmpty ? t('game_finish') : t('game_draw')}
+            className="mx-auto block w-full max-w-[16rem] flex-shrink-0 rounded-3xl transition active:scale-[0.97] enabled:cursor-pointer disabled:cursor-default focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
           >
-            {current ? (
+            {shuffling ? (
+              <ShuffleDeck label={t('game_shuffling')} />
+            ) : current ? (
               <PlayingCard card={current} animate={settings.animationEnabled} animKey={session.drawn.length} />
             ) : (
               <CardBack label={t('game_shuffle_hint')} />
@@ -144,7 +159,7 @@ export default function GamePage() {
                 🏁 {t('game_finish')}
               </Button>
             ) : (
-              <Button variant="primary" full onClick={onDraw}>
+              <Button variant="primary" full onClick={onDraw} disabled={shuffling}>
                 {t('game_draw')} · {remaining} {t('game_cards_left')}
               </Button>
             )}

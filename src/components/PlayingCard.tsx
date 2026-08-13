@@ -58,3 +58,25 @@ export function CardBack({ label }: { label: string }) {
     </div>
   );
 }
+
+// Riffle animation shown briefly while a new game is being shuffled.
+export function ShuffleDeck({ label }: { label: string }) {
+  return (
+    <div className="relative aspect-[3/4.2] w-full" role="img" aria-label={label}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand to-brand-strong shadow-2xl"
+          style={{ animation: `card-shuffle 0.55s ease-in-out ${i * 0.09}s infinite` }}
+        >
+          <div className="absolute inset-2 rounded-2xl border-2 border-white/30" />
+        </div>
+      ))}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="animate-pop-in text-6xl drop-shadow-lg" aria-hidden>
+          🔀
+        </span>
+      </div>
+    </div>
+  );
+}

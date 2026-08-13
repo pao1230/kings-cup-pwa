@@ -54,6 +54,21 @@ body {
   }
 }
 
+/* Shuffle animation when a new game starts (each stacked card back is offset
+   in time so the deck looks like it is being riffled). */
+@keyframes card-shuffle {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  30% {
+    transform: translateX(-58%) rotate(-15deg);
+  }
+  60% {
+    transform: translateX(58%) rotate(15deg);
+  }
+}
+
 /* Utility: min 48x48 tap target (NFR-5). */
 .tap {
   min-width: 48px;

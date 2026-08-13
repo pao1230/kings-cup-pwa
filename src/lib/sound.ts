@@ -39,3 +39,11 @@ export function playKing(enabled: boolean): void {
   setTimeout(() => blip(660, 140, 'sawtooth', 0.05), 110);
   setTimeout(() => blip(880, 200, 'sawtooth', 0.05), 240);
 }
+
+// Quick riffle: a burst of short clicks to accompany the shuffle animation.
+export function playShuffle(enabled: boolean): void {
+  if (!enabled) return;
+  for (let i = 0; i < 9; i++) {
+    setTimeout(() => blip(280 + Math.random() * 220, 25, 'square', 0.02), i * 70);
+  }
+}
