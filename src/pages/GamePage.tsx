@@ -21,6 +21,9 @@ export default function GamePage() {
   const start = useGame((s) => s.start);
 
   const [confirmRestart, setConfirmRestart] = useState(false);
+  // The game-over screen is a deliberate second step: the last (52nd) card and
+  // its rule must be shown first, then the player advances to the summary.
+  const [showGameOver, setShowGameOver] = useState(false);
 
   useWakeLock(!!session && session.deck.length > 0);
 
@@ -29,7 +32,6 @@ export default function GamePage() {
   const remaining = session.deck.length;
   const total = session.deck.length + session.drawn.length;
   const current = session.drawn[session.drawn.length - 1] ?? null;
-  const isOver = remaining === 0 && session.drawn.length > 0;
   const currentRule = current
     ? activeRuleSet.rules.find((r) => r.rank === current.rank)
     : null;
@@ -45,8 +47,13 @@ export default function GamePage() {
 
   const onRestart = () => {
     setConfirmRestart(false);
+    setShowGameOver(false);
     if (activeRuleSetId) start(activeRuleSetId);
   };
+
+  // Deck exhausted but the last card is still on screen (FR-1.8 happens next).
+  const deckEmpty = remaining === 0 && session.drawn.length > 0;
+  const finish = () => setShowGameOver(true);
 
   return (
     <div className="flex min-h-full flex-col gap-4">
@@ -70,23 +77,23 @@ export default function GamePage() {
         </div>
       </div>
 
-      {isOver ? (
+      {showGameOver ? (
         <GameOver
-          onNew={() => activeRuleSetId && start(activeRuleSetId)}
+          onNew={onRestart}
           title={t('game_over_title')}
           sub={t('game_over_sub')}
           btn={t('game_over_new')}
         />
       ) : (
         <>
-          {/* Card area (FR-1.1). Tapping the card draws too — a natural gesture
-              alongside the Draw button. Disabled (no-op) once the deck is empty. */}
+          {/* Card area (FR-1.1). Tapping the card draws; once the deck is empty
+              the same tap advances to the game-over summary so the last card is
+              always shown first. */}
           <button
             type="button"
-            onClick={onDraw}
-            disabled={remaining === 0}
-            aria-label={t('game_draw')}
-            className="mx-auto block w-full max-w-[16rem] flex-shrink-0 rounded-3xl transition active:scale-[0.97] enabled:cursor-pointer disabled:cursor-default focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+            onClick={deckEmpty ? finish : onDraw}
+            aria-label={deckEmpty ? t('game_finish') : t('game_draw')}
+            className="mx-auto block w-full max-w-[16rem] flex-shrink-0 rounded-3xl transition active:scale-[0.97] cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
           >
             {current ? (
               <PlayingCard card={current} animate={settings.animationEnabled} animKey={session.drawn.length} />
@@ -121,15 +128,26 @@ export default function GamePage() {
                 )}
               </div>
             )}
+            {deckEmpty && (
+              <p className="mt-3 text-center text-sm font-medium text-brand animate-pop-in">
+                🏁 {t('game_last_card_hint')}
+              </p>
+            )}
           </div>
 
           {/* Controls (FR-1.5 / FR-1.7). Solid backdrop + full-bleed so that on
               short screens the rule text scrolls cleanly behind this bar instead
               of bleeding through it. */}
           <div className="sticky bottom-0 -mx-4 mt-auto flex flex-col gap-2 border-t border-border/60 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur">
-            <Button variant="primary" full onClick={onDraw} disabled={remaining === 0}>
-              {t('game_draw')} · {remaining} {t('game_cards_left')}
-            </Button>
+            {deckEmpty ? (
+              <Button variant="primary" full onClick={finish}>
+                🏁 {t('game_finish')}
+              </Button>
+            ) : (
+              <Button variant="primary" full onClick={onDraw}>
+                {t('game_draw')} · {remaining} {t('game_cards_left')}
+              </Button>
+            )}
             {confirmRestart ? (
               // Explicit cancel + confirm so the prompt can always be dismissed
               // (the old tap-again / blur-to-cancel pattern was a dead end on touch).
