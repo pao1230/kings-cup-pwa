@@ -44,10 +44,6 @@ export default function GamePage() {
   };
 
   const onRestart = () => {
-    if (!confirmRestart) {
-      setConfirmRestart(true);
-      return;
-    }
     setConfirmRestart(false);
     if (activeRuleSetId) start(activeRuleSetId);
   };
@@ -132,25 +128,29 @@ export default function GamePage() {
               of bleeding through it. */}
           <div className="sticky bottom-0 -mx-4 mt-auto flex flex-col gap-2 border-t border-border/60 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur">
             <Button variant="primary" full onClick={onDraw} disabled={remaining === 0}>
-              {t('game_draw')} · {remaining} {t('game_cards')}
+              {t('game_draw')} · {remaining} {t('game_cards_left')}
             </Button>
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                onClick={undo}
-                disabled={session.drawn.length === 0}
-              >
-                ↩︎ {t('game_undo')}
-              </Button>
-              <Button
-                variant={confirmRestart ? 'danger' : 'secondary'}
-                className="flex-1"
-                onClick={onRestart}
-                onBlur={() => setConfirmRestart(false)}
-              >
-                {confirmRestart ? t('common_confirm') : t('game_restart')}
-              </Button>
-            </div>
+            {confirmRestart ? (
+              // Explicit cancel + confirm so the prompt can always be dismissed
+              // (the old tap-again / blur-to-cancel pattern was a dead end on touch).
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={() => setConfirmRestart(false)}>
+                  {t('common_cancel')}
+                </Button>
+                <Button variant="danger" className="flex-1" onClick={onRestart}>
+                  {t('common_confirm')}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={undo} disabled={session.drawn.length === 0}>
+                  ↩︎ {t('game_undo')}
+                </Button>
+                <Button className="flex-1" onClick={() => setConfirmRestart(true)}>
+                  {t('game_restart')}
+                </Button>
+              </div>
+            )}
             {confirmRestart && (
               <p className="text-center text-sm text-muted">{t('game_restart_confirm')}</p>
             )}
