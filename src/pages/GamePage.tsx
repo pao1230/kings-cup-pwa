@@ -83,14 +83,21 @@ export default function GamePage() {
         />
       ) : (
         <>
-          {/* Card area (FR-1.1) */}
-          <div className="mx-auto w-full max-w-[16rem] flex-shrink-0">
+          {/* Card area (FR-1.1). Tapping the card draws too — a natural gesture
+              alongside the Draw button. Disabled (no-op) once the deck is empty. */}
+          <button
+            type="button"
+            onClick={onDraw}
+            disabled={remaining === 0}
+            aria-label={t('game_draw')}
+            className="mx-auto block w-full max-w-[16rem] flex-shrink-0 rounded-3xl transition active:scale-[0.97] enabled:cursor-pointer disabled:cursor-default focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+          >
             {current ? (
               <PlayingCard card={current} animate={settings.animationEnabled} animKey={session.drawn.length} />
             ) : (
               <CardBack label={t('game_shuffle_hint')} />
             )}
-          </div>
+          </button>
 
           {/* Rule for the current card (FR-1.2) */}
           <div className="flex-1">
