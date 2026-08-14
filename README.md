@@ -9,6 +9,9 @@
 
 - **เล่นเกม** — สับ/จั่วไพ่ครบ 52 ใบ, แสดงหน้าไพ่และกติกาของใบที่จั่ว, นับไพ่ที่เหลือ,
   ตัวนับราชา (K) 0–4 พร้อมเน้นใบสุดท้าย, ย้อนกลับ (Undo), หน้าจบเกม
+- **ขึ้นรถบัส (Ride the Bus)** — เกมทายไพ่ 4 ด่าน: สีไพ่ (แดง/ดำ) → สูง/ต่ำ →
+  ในช่วง/นอกช่วง → ทายดอกไพ่, ทายถูกไปต่อ ทายผิดดื่มตามด่านแล้วเริ่มใหม่,
+  ผ่านครบ 4 ด่านถือว่าชนะ, นับสถิติผ่าน/ตกรถ (รองรับโหมดไม่มีแอลกอฮอล์)
 - **แก้กติกา** — รายการไพ่ 13 แต้ม, แก้ชื่อ/รายละเอียด/อีโมจิ/ไพ่พิเศษ,
   ตรวจความยาว (ชื่อ 1–30 / รายละเอียด 0–300) พร้อมตัวอย่างเรียลไทม์
 - **ชุดกติกา** — ชุดมาตรฐาน (ลบไม่ได้), สร้าง/ทำสำเนา/แก้/ลบ, เลือกชุดที่ใช้งาน,
@@ -52,11 +55,12 @@ src/
   store/                   Zustand: settings, ruleSet, game
   i18n/                    สตริง TH/EN + hook useT
   components/              Layout, PlayingCard, PwaPrompts, ui
-  pages/                   Game, Rules, RuleEdit, RuleSets, New, Import, Settings
+  pages/                   Game, RideTheBus, Rules, RuleEdit, RuleSets, New, Import, Settings
 ```
 
-เส้นทางหน้าจอ (ใช้ HashRouter): `#/` เล่นเกม · `#/rules` · `#/rules/:rank` ·
-`#/rulesets` · `#/rulesets/new` · `#/rulesets/import` · `#/settings`
+เส้นทางหน้าจอ (ใช้ HashRouter): `#/` เล่นเกม · `#/ride-the-bus` ขึ้นรถบัส ·
+`#/rules` · `#/rules/:rank` · `#/rulesets` · `#/rulesets/new` ·
+`#/rulesets/import` · `#/settings`
 
 ## ✅ สถานะ
 

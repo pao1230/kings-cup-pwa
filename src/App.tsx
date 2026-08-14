@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import GamePage from './pages/GamePage';
+import RideTheBusPage from './pages/RideTheBusPage';
 import RulesPage from './pages/RulesPage';
 import RuleEditPage from './pages/RuleEditPage';
 import RuleSetsPage from './pages/RuleSetsPage';
@@ -42,6 +43,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<GamePage />} />
+        <Route path="/ride-the-bus" element={<RideTheBusPage />} />
         <Route path="/rules" element={<RulesPage />} />
         <Route path="/rules/:rank" element={<RuleEditPage />} />
         <Route path="/rulesets" element={<RuleSetsPage />} />

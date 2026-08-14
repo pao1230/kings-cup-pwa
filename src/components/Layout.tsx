@@ -4,6 +4,7 @@ import PwaPrompts from './PwaPrompts';
 
 const TABS = [
   { to: '/', key: 'nav_play', icon: '🎴', end: true },
+  { to: '/ride-the-bus', key: 'nav_ridethebus', icon: '🚌', end: false },
   { to: '/rules', key: 'nav_rules', icon: '📜', end: false },
   { to: '/rulesets', key: 'nav_rulesets', icon: '🗂️', end: false },
   { to: '/settings', key: 'nav_settings', icon: '⚙️', end: false },

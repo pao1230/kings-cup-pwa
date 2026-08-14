@@ -44,6 +44,27 @@ export default function PlayingCard({
   );
 }
 
+// Compact face-up card for showing a row of previously revealed cards
+// (used by the Ride the Bus context strip). Relative units keep it legible
+// at any width.
+export function MiniCard({ card }: { card: Card }) {
+  const red = isRedSuit(card.suit);
+  const symbol = SUIT_SYMBOL[card.suit];
+  return (
+    <div
+      className={`flex aspect-[3/4.2] w-12 flex-col justify-between rounded-lg border border-border bg-white p-1 shadow-md ${
+        red ? 'text-rose-600' : 'text-neutral-900'
+      }`}
+    >
+      <span className="text-sm font-bold leading-none">{card.rank}</span>
+      <span className="self-center text-lg leading-none" aria-hidden>
+        {symbol}
+      </span>
+      <span className="rotate-180 self-end text-sm font-bold leading-none">{card.rank}</span>
+    </div>
+  );
+}
+
 // The face-down deck placeholder shown before the first draw.
 export function CardBack({ label }: { label: string }) {
   return (

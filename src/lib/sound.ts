@@ -40,6 +40,21 @@ export function playKing(enabled: boolean): void {
   setTimeout(() => blip(880, 200, 'sawtooth', 0.05), 240);
 }
 
+// Rising arpeggio for clearing a Ride the Bus run.
+export function playWin(enabled: boolean): void {
+  if (!enabled) return;
+  blip(660, 120, 'triangle');
+  setTimeout(() => blip(880, 120, 'triangle'), 110);
+  setTimeout(() => blip(1175, 240, 'triangle'), 230);
+}
+
+// Low descending buzz for a wrong guess.
+export function playWrong(enabled: boolean): void {
+  if (!enabled) return;
+  blip(200, 180, 'sawtooth', 0.05);
+  setTimeout(() => blip(150, 260, 'sawtooth', 0.05), 130);
+}
+
 // Quick riffle: a burst of short clicks to accompany the shuffle animation.
 export function playShuffle(enabled: boolean): void {
   if (!enabled) return;
