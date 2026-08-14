@@ -64,6 +64,13 @@ export const STRINGS = {
     rtb_won_title: 'รอดตัว! ไม่ตกรถ 🎉',
     rtb_won_sub: 'ผ่านครบ 4 ด่าน — สั่งคนอื่นดื่มได้เลย 🍻',
     rtb_won_sub_af: 'ผ่านครบ 4 ด่าน — สั่งให้คนอื่นทำภารกิจได้เลย 🎉',
+    rtb_howto: 'วิธีเล่น',
+    rtb_howto_intro: 'ทายไพ่ให้ถูก 4 ด่านติดต่อกัน · ทายถูกไปต่อ · ทายผิดดื่มตามเลขด่านแล้วเริ่มใหม่ · ผ่านครบ 4 ด่านถือว่าชนะ',
+    rtb_howto_1: 'สีไพ่ — ทายว่าไพ่ใบแรกสีแดงหรือดำ',
+    rtb_howto_2: 'สูง/ต่ำ — ใบต่อไปแต้มสูงหรือต่ำกว่าใบแรก (เท่ากัน = ผิด)',
+    rtb_howto_3: 'ใน/นอก — ใบที่สามอยู่ในช่วงหรือนอกช่วงสองใบแรก (ตรงขอบ = ผิด)',
+    rtb_howto_4: 'ดอกไพ่ — ทายดอกของไพ่ใบสุดท้าย (♥ ♦ ♣ ♠)',
+    rtb_howto_note: 'ลำดับแต้ม: 2 ต่ำสุด → 10, J, Q, K แล้ว A สูงสุด',
 
     // rules
     rules_title: 'กติกาไพ่ทั้ง 13 แต้ม',
@@ -205,6 +212,13 @@ export const STRINGS = {
     rtb_won_title: 'You beat the bus! 🎉',
     rtb_won_sub: 'All four rounds cleared — hand out the drinks 🍻',
     rtb_won_sub_af: 'All four rounds cleared — hand out the challenges 🎉',
+    rtb_howto: 'How to play',
+    rtb_howto_intro: 'Call four rounds in a row · right = advance · wrong = drink the round number and start over · clear all four to win',
+    rtb_howto_1: 'Colour — guess if the first card is red or black',
+    rtb_howto_2: 'Higher / Lower — next card vs the first (a tie loses)',
+    rtb_howto_3: 'Inside / Outside — third card vs the first two (on a boundary loses)',
+    rtb_howto_4: 'Suit — guess the suit of the last card (♥ ♦ ♣ ♠)',
+    rtb_howto_note: 'Rank order: 2 lowest → 10, J, Q, K, then A highest',
 
     rules_title: 'All 13 card rules',
     rules_editing: 'Editing set',

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useRtb } from '../store/rideTheBusStore';
 import type { RtbChoice, RtbRound } from '../store/rideTheBusStore';
 import { useSettings } from '../store/settingsStore';
@@ -35,6 +36,8 @@ export default function RideTheBusPage() {
   const guess = useRtb((s) => s.guess);
   const next = useRtb((s) => s.next);
   const start = useRtb((s) => s.start);
+
+  const [showHelp, setShowHelp] = useState(false);
 
   // Keep the screen awake while a run is in progress.
   useWakeLock(status !== 'won');
@@ -94,11 +97,16 @@ export default function RideTheBusPage() {
 
   return (
     <div className="flex min-h-full flex-col gap-4">
-      {/* Header: title + session tally */}
+      {/* Header: title (also the how-to toggle) + session tally */}
       <div className="flex items-center justify-between gap-2 text-sm">
-        <span className="truncate rounded-full bg-surface px-3 py-1 font-medium text-muted">
-          🚌 {t('rtb_title')}
-        </span>
+        <button
+          type="button"
+          onClick={() => setShowHelp((v) => !v)}
+          aria-expanded={showHelp}
+          className="tap truncate rounded-full bg-surface px-3 py-1 font-medium text-muted"
+        >
+          🚌 {t('rtb_title')} <span aria-hidden>ⓘ</span>
+        </button>
         <div className="flex items-center gap-2 tabular-nums">
           <span className="rounded-full bg-surface px-3 py-1 font-semibold">
             🏆 {t('rtb_wins')} {wins}
@@ -108,6 +116,9 @@ export default function RideTheBusPage() {
           </span>
         </div>
       </div>
+
+      {/* How to play — collapsible, toggled from the title */}
+      {showHelp && <HowTo t={t} onClose={() => setShowHelp(false)} />}
 
       {/* Progress strip: one pill per round */}
       <ol className="flex gap-1.5">
@@ -185,6 +196,38 @@ export default function RideTheBusPage() {
           {t('rtb_new_game')}
         </Button>
       </div>
+    </div>
+  );
+}
+
+// Collapsible "how to play" panel toggled from the header title.
+function HowTo({ t, onClose }: { t: (key: StringKey) => string; onClose: () => void }) {
+  const steps: StringKey[] = ['rtb_howto_1', 'rtb_howto_2', 'rtb_howto_3', 'rtb_howto_4'];
+  return (
+    <div className="animate-pop-in rounded-2xl border border-brand/40 bg-brand/10 p-4 text-sm">
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="font-bold text-text">📖 {t('rtb_howto')}</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t('common_close')}
+          className="tap -m-2 flex items-center justify-center text-lg text-muted"
+        >
+          ✕
+        </button>
+      </div>
+      <p className="mt-2 leading-relaxed text-muted">{t('rtb_howto_intro')}</p>
+      <ol className="mt-3 flex flex-col gap-2">
+        {steps.map((key, i) => (
+          <li key={key} className="flex gap-2">
+            <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
+              {i + 1}
+            </span>
+            <span className="leading-relaxed text-text">{t(key)}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-3 text-xs text-muted">💡 {t('rtb_howto_note')}</p>
     </div>
   );
 }
