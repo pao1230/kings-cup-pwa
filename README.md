@@ -7,6 +7,7 @@
 
 ## ✨ ฟีเจอร์
 
+- **หน้าแรก (เลือกเกม)** — เมนูหน้าแรกเลือกได้ว่าจะเล่น Kings Cup หรือ Ride the Bus
 - **เล่นเกม** — สับ/จั่วไพ่ครบ 52 ใบ, แสดงหน้าไพ่และกติกาของใบที่จั่ว, นับไพ่ที่เหลือ,
   ตัวนับราชา (K) 0–4 พร้อมเน้นใบสุดท้าย, ย้อนกลับ (Undo), หน้าจบเกม
 - **ขึ้นรถบัส (Ride the Bus)** — เกมทายไพ่ 4 ด่าน: สีไพ่ (แดง/ดำ) → สูง/ต่ำ →
@@ -55,12 +56,12 @@ src/
   store/                   Zustand: settings, ruleSet, game
   i18n/                    สตริง TH/EN + hook useT
   components/              Layout, PlayingCard, PwaPrompts, ui
-  pages/                   Game, RideTheBus, Rules, RuleEdit, RuleSets, New, Import, Settings
+  pages/                   Home, Game, RideTheBus, Rules, RuleEdit, RuleSets, New, Import, Settings
 ```
 
-เส้นทางหน้าจอ (ใช้ HashRouter): `#/` เล่นเกม · `#/ride-the-bus` ขึ้นรถบัส ·
-`#/rules` · `#/rules/:rank` · `#/rulesets` · `#/rulesets/new` ·
-`#/rulesets/import` · `#/settings`
+เส้นทางหน้าจอ (ใช้ HashRouter): `#/` หน้าแรก (เลือกเกม) · `#/kings-cup` เล่น Kings Cup ·
+`#/ride-the-bus` ขึ้นรถบัส · `#/rules` · `#/rules/:rank` · `#/rulesets` ·
+`#/rulesets/new` · `#/rulesets/import` · `#/settings`
 
 ## ✅ สถานะ
 

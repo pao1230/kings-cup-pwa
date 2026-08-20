@@ -8,11 +8,18 @@ export const STRINGS = {
     tagline: 'เกมไพ่ปาร์ตี้ ปรับกติกาได้เอง',
 
     // nav
+    nav_home: 'หน้าแรก',
     nav_play: 'เล่นเกม',
     nav_ridethebus: 'รถบัส',
     nav_rules: 'กติกา',
     nav_rulesets: 'ชุดกติกา',
     nav_settings: 'ตั้งค่า',
+
+    // home (game picker)
+    home_choose: 'เลือกเกมที่จะเล่น',
+    home_kingscup_desc: 'จั่วไพ่ครบ 52 ใบ ทำตามกติกาของแต่ละใบ ปรับกติกาเองได้',
+    home_ridethebus_desc: 'ทายไพ่ให้ถูก 4 ด่าน ทายผิดดื่มแล้วเริ่มใหม่ ผ่านครบชนะ',
+    home_play: 'เล่นเลย',
 
     // game
     game_draw: 'จั่วไพ่',
@@ -157,11 +164,18 @@ export const STRINGS = {
     appName: 'Kings Cup',
     tagline: 'Party card game with editable rules',
 
+    nav_home: 'Home',
     nav_play: 'Play',
     nav_ridethebus: 'Bus',
     nav_rules: 'Rules',
     nav_rulesets: 'Rule Sets',
     nav_settings: 'Settings',
+
+    // home (game picker)
+    home_choose: 'Choose a game to play',
+    home_kingscup_desc: 'Draw all 52 cards and follow each card’s rule — fully editable',
+    home_ridethebus_desc: 'Call four rounds right — miss and drink, clear them all to win',
+    home_play: 'Play now',
 
     game_draw: 'Draw',
     game_remaining: 'Left',
