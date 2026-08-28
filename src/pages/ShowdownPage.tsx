@@ -357,15 +357,18 @@ function Table({
         }}
       >
         {slots.map((slot, i) => {
-          const color = PLAYER_COLORS[slot.owner];
-          const isWinner = winners.includes(slot.owner);
-          const isLoser = losers.includes(slot.owner);
+          // A card only has a player identity once it has been claimed (pressed);
+          // `order` is null until then, so unpicked cards render colourless.
+          const claimed = slot.order !== null;
+          const color = claimed ? PLAYER_COLORS[slot.order as number].hex : undefined;
+          const isWinner = claimed && winners.includes(slot.order as number);
+          const isLoser = claimed && losers.includes(slot.order as number);
           const badge = done ? (isWinner ? '👑' : isLoser ? '💀' : undefined) : undefined;
           const dim = done && (winners.length > 0 || losers.length > 0) && !isWinner && !isLoser;
           const highlighted = done && (isWinner || isLoser);
           return (
             <div
-              key={slot.owner}
+              key={slot.id}
               className="absolute w-[4rem] sm:w-[4.75rem]"
               style={{
                 left: `${slot.x}%`,
@@ -377,8 +380,8 @@ function Table({
               {slot.flipped ? (
                 <FaceUpTile
                   card={slot.card}
-                  owner={slot.owner + 1}
-                  color={color.hex}
+                  owner={(slot.order as number) + 1}
+                  color={color as string}
                   animate={animate}
                   animKey={i}
                   badge={badge}
@@ -392,13 +395,13 @@ function Table({
                     animate ? { animation: `card-toss 0.4s ease-out ${i * 0.07}s both` } : undefined
                   }
                 >
-                  <CardBackTile color={color.hex} owner={slot.owner + 1} />
+                  <CardBackTile />
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => onFlip(i)}
-                  aria-label={t('sd_flip_this').replace('{n}', String(slot.owner + 1))}
+                  aria-label={t('sd_flip_card')}
                   className="block w-full rounded-xl transition active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                   style={
                     animate
@@ -406,7 +409,7 @@ function Table({
                       : undefined
                   }
                 >
-                  <CardBackTile color={color.hex} owner={slot.owner + 1} />
+                  <CardBackTile />
                 </button>
               )}
             </div>
@@ -502,18 +505,18 @@ function OwnerChip({ color, owner }: { color: string; owner: number }) {
   );
 }
 
-// Face-down card as it sits on the table: coloured owner ring + number chip.
-function CardBackTile({ color, owner }: { color: string; owner: number }) {
+// Face-down card as it sits on the table — neutral / colourless until a player
+// claims it by pressing (then it flips face up in that player's colour).
+function CardBackTile() {
   return (
     <div
-      className="relative flex aspect-[3/4.2] w-full items-center justify-center rounded-xl bg-gradient-to-br from-brand to-brand-strong shadow-xl"
-      style={{ boxShadow: `0 0 0 3px ${color}, 0 6px 14px rgba(0,0,0,0.4)` }}
+      className="relative flex aspect-[3/4.2] w-full items-center justify-center rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 shadow-xl"
+      style={{ boxShadow: '0 0 0 2px rgba(255,255,255,0.15), 0 6px 14px rgba(0,0,0,0.4)' }}
     >
-      <div className="absolute inset-1 rounded-lg border-2 border-white/30" />
-      <span className="text-3xl" aria-hidden>
+      <div className="absolute inset-1 rounded-lg border-2 border-white/25" />
+      <span className="text-3xl opacity-80" aria-hidden>
         👑
       </span>
-      <OwnerChip color={color} owner={owner} />
     </div>
   );
 }

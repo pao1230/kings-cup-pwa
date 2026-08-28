@@ -62,8 +62,12 @@ export type ShowdownPhase = 'setup' | 'playing' | 'result';
 
 export interface ShowdownSlot {
   card: Card; // the card dealt to this position
-  owner: number; // player index (= deal position) this card belongs to
+  id: number; // stable deal position, used only as a render key
   flipped: boolean; // has it been turned face up yet?
+  // Player identity is claimed by the ORDER a card is pressed, not by position:
+  // the first card flipped becomes player 0 (colour 0), the next player 1, …
+  // `order` is null until the card is selected, so unpicked cards stay colourless.
+  order: number | null;
   x: number; // where it landed on the table, as a 0–100 % of the surface
   y: number;
   rot: number; // the angle it landed at, in degrees
@@ -114,8 +118,9 @@ function tossPositions(n: number): { x: number; y: number; rot: number }[] {
 }
 
 // Score the fully-revealed table: who holds the highest and lowest card.
+// Players are identified by their claim `order` (assigned as cards are pressed).
 function scoreSlots(slots: ShowdownSlot[]): { highest: number[]; lowest: number[] } {
-  const byPlayer = slots.map((s) => ({ player: s.owner, value: cardValue(s.card) }));
+  const byPlayer = slots.map((s) => ({ player: s.order as number, value: cardValue(s.card) }));
   const values = byPlayer.map((b) => b.value);
   const max = Math.max(...values);
   const min = Math.min(...values);
@@ -154,7 +159,7 @@ export const useShowdown = create<ShowdownState>((set, get) => ({
     const pos = tossPositions(playerCount);
     const slots: ShowdownSlot[] = shuffledDeck()
       .slice(0, playerCount)
-      .map((card, i) => ({ card, owner: i, flipped: false, ...pos[i] }));
+      .map((card, i) => ({ card, id: i, flipped: false, order: null, ...pos[i] }));
     set({ phase: 'playing', slots, highest: [], lowest: [] });
   },
 
@@ -163,7 +168,11 @@ export const useShowdown = create<ShowdownState>((set, get) => ({
     if (phase !== 'playing') return;
     const slot = slots[slotIndex];
     if (!slot || slot.flipped) return;
-    const nextSlots = slots.map((s, i) => (i === slotIndex ? { ...s, flipped: true } : s));
+    // Claim the next colour in press order.
+    const claimed = slots.filter((s) => s.order !== null).length;
+    const nextSlots = slots.map((s, i) =>
+      i === slotIndex ? { ...s, flipped: true, order: claimed } : s,
+    );
     if (nextSlots.every((s) => s.flipped)) {
       set({ slots: nextSlots, phase: 'result', ...scoreSlots(nextSlots) });
     } else {
@@ -174,7 +183,11 @@ export const useShowdown = create<ShowdownState>((set, get) => ({
   flipAll: () => {
     const { phase, slots } = get();
     if (phase !== 'playing') return;
-    const nextSlots = slots.map((s) => ({ ...s, flipped: true }));
+    // Give any not-yet-claimed cards the remaining colours, in table order.
+    let claimed = slots.filter((s) => s.order !== null).length;
+    const nextSlots = slots.map((s) =>
+      s.flipped ? s : { ...s, flipped: true, order: claimed++ },
+    );
     set({ slots: nextSlots, phase: 'result', ...scoreSlots(nextSlots) });
   },
 
