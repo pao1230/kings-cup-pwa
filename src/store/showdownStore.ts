@@ -19,6 +19,12 @@ export const MAX_PLAYERS = 8;
 export type WinnerMode = 'highest' | 'lowest' | 'both_lose';
 export const WINNER_MODES: WinnerMode[] = ['highest', 'lowest', 'both_lose'];
 
+// How the cards get turned face up:
+//   'each'     — no turns, everyone races to flip their own card one by one
+//   'together' — cards stay down until one button flips them all at once
+export type RevealMode = 'each' | 'together';
+export const REVEAL_MODES: RevealMode[] = ['each', 'together'];
+
 // One distinct colour per player slot — the only thing that tells players apart
 // (per the brief: "separate each player by colour"). Kept as hex so we can apply
 // them via inline styles without fighting Tailwind's purge over dynamic classes.
@@ -66,6 +72,7 @@ export interface ShowdownSlot {
 interface ShowdownState {
   playerCount: number;
   winnerMode: WinnerMode;
+  revealMode: RevealMode;
   phase: ShowdownPhase;
   slots: ShowdownSlot[]; // exactly `playerCount` cards while playing
   highest: number[]; // player indices holding the highest card (after reveal)
@@ -73,6 +80,7 @@ interface ShowdownState {
 
   setPlayerCount: (n: number) => void;
   setWinnerMode: (mode: WinnerMode) => void;
+  setRevealMode: (mode: RevealMode) => void;
   deal: () => void; // leave setup, deal one face-down card per player
   flip: (slotIndex: number) => void; // turn one card face up (any order)
   flipAll: () => void; // turn over every remaining card at once
@@ -120,6 +128,7 @@ function scoreSlots(slots: ShowdownSlot[]): { highest: number[]; lowest: number[
 export const useShowdown = create<ShowdownState>((set, get) => ({
   playerCount: 4,
   winnerMode: 'highest',
+  revealMode: 'each',
   phase: 'setup',
   slots: [],
   highest: [],
@@ -133,6 +142,11 @@ export const useShowdown = create<ShowdownState>((set, get) => ({
   setWinnerMode: (mode) => {
     if (get().phase !== 'setup') return;
     set({ winnerMode: mode });
+  },
+
+  setRevealMode: (mode) => {
+    if (get().phase !== 'setup') return;
+    set({ revealMode: mode });
   },
 
   deal: () => {

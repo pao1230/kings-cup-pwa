@@ -3,9 +3,11 @@ import {
   useShowdown,
   PLAYER_COLORS,
   WINNER_MODES,
+  REVEAL_MODES,
   MIN_PLAYERS,
   MAX_PLAYERS,
   type WinnerMode,
+  type RevealMode,
   type ShowdownSlot,
 } from '../store/showdownStore';
 import { useSettings } from '../store/settingsStore';
@@ -25,18 +27,26 @@ const MODE_LABEL: Record<WinnerMode, StringKey> = {
   both_lose: 'sd_mode_both_lose',
 };
 
+// Labels for the reveal-mode segmented control.
+const REVEAL_LABEL: Record<RevealMode, { label: StringKey; icon: string }> = {
+  each: { label: 'sd_reveal_each', icon: '🙌' },
+  together: { label: 'sd_reveal_together', icon: '🎬' },
+};
+
 export default function ShowdownPage() {
   const t = useT();
   const settings = useSettings();
 
   const playerCount = useShowdown((s) => s.playerCount);
   const winnerMode = useShowdown((s) => s.winnerMode);
+  const revealMode = useShowdown((s) => s.revealMode);
   const phase = useShowdown((s) => s.phase);
   const slots = useShowdown((s) => s.slots);
   const highest = useShowdown((s) => s.highest);
   const lowest = useShowdown((s) => s.lowest);
   const setPlayerCount = useShowdown((s) => s.setPlayerCount);
   const setWinnerMode = useShowdown((s) => s.setWinnerMode);
+  const setRevealMode = useShowdown((s) => s.setRevealMode);
   const deal = useShowdown((s) => s.deal);
   const flip = useShowdown((s) => s.flip);
   const flipAll = useShowdown((s) => s.flipAll);
@@ -103,8 +113,10 @@ export default function ShowdownPage() {
         <Setup
           playerCount={playerCount}
           winnerMode={winnerMode}
+          revealMode={revealMode}
           onCount={setPlayerCount}
           onMode={setWinnerMode}
+          onRevealMode={setRevealMode}
           onDeal={onDeal}
           t={t}
         />
@@ -115,6 +127,7 @@ export default function ShowdownPage() {
           slots={slots}
           phase={phase}
           winnerMode={winnerMode}
+          revealMode={revealMode}
           highest={highest}
           lowest={lowest}
           onFlip={onFlip}
@@ -134,15 +147,19 @@ export default function ShowdownPage() {
 function Setup({
   playerCount,
   winnerMode,
+  revealMode,
   onCount,
   onMode,
+  onRevealMode,
   onDeal,
   t,
 }: {
   playerCount: number;
   winnerMode: WinnerMode;
+  revealMode: RevealMode;
   onCount: (n: number) => void;
   onMode: (m: WinnerMode) => void;
+  onRevealMode: (m: RevealMode) => void;
   onDeal: () => void;
   t: (key: StringKey) => string;
 }) {
@@ -227,6 +244,35 @@ function Setup({
         </div>
       </div>
 
+      {/* Reveal mode — race to flip each card, or reveal them all at once */}
+      <div className="w-full">
+        <p className="mb-2 text-sm font-semibold text-muted">{t('sd_reveal_mode')}</p>
+        <div className="grid grid-cols-2 gap-2">
+          {REVEAL_MODES.map((mode) => {
+            const active = revealMode === mode;
+            const { label, icon } = REVEAL_LABEL[mode];
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => onRevealMode(mode)}
+                aria-pressed={active}
+                className={`tap flex flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center text-sm font-semibold transition ${
+                  active
+                    ? 'border-brand bg-brand/10 text-brand'
+                    : 'border-border bg-surface text-text'
+                }`}
+              >
+                <span className="text-xl" aria-hidden>
+                  {icon}
+                </span>
+                {t(label)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <Button variant="primary" onClick={onDeal} className="mt-1 px-8 text-lg">
         🃏 {t('sd_deal')}
       </Button>
@@ -239,6 +285,7 @@ function Table({
   slots,
   phase,
   winnerMode,
+  revealMode,
   highest,
   lowest,
   onFlip,
@@ -252,6 +299,7 @@ function Table({
   slots: ShowdownSlot[];
   phase: 'playing' | 'result';
   winnerMode: WinnerMode;
+  revealMode: RevealMode;
   highest: number[];
   lowest: number[];
   onFlip: (index: number) => void;
@@ -263,6 +311,7 @@ function Table({
   t: (key: StringKey) => string;
 }) {
   const done = phase === 'result';
+  const together = revealMode === 'together';
 
   // Who is highlighted, and how, once everything is revealed.
   const winners = winnerMode === 'highest' ? highest : winnerMode === 'lowest' ? lowest : [];
@@ -283,12 +332,16 @@ function Table({
         />
       ) : (
         <div className="text-center">
-          <p className="text-lg font-bold">🏁 {t('sd_flip_hint')}</p>
-          <p className="mt-1 text-sm text-muted tabular-nums">
-            {t('sd_flipped_progress')
-              .replace('{a}', String(flippedCount))
-              .replace('{b}', String(slots.length))}
+          <p className="text-lg font-bold">
+            {together ? `🎬 ${t('sd_flip_hint_together')}` : `🏁 ${t('sd_flip_hint')}`}
           </p>
+          {!together && (
+            <p className="mt-1 text-sm text-muted tabular-nums">
+              {t('sd_flipped_progress')
+                .replace('{a}', String(flippedCount))
+                .replace('{b}', String(slots.length))}
+            </p>
+          )}
         </div>
       )}
 
@@ -331,6 +384,16 @@ function Table({
                   badge={badge}
                   dim={dim}
                 />
+              ) : together ? (
+                // Reveal-together mode: cards wait face-down, flipped by the button.
+                <div
+                  className="w-full"
+                  style={
+                    animate ? { animation: `card-toss 0.4s ease-out ${i * 0.07}s both` } : undefined
+                  }
+                >
+                  <CardBackTile color={color.hex} owner={slot.owner + 1} />
+                </div>
               ) : (
                 <button
                   type="button"
@@ -359,7 +422,7 @@ function Table({
           </Button>
         ) : (
           <Button variant="primary" full onClick={onFlipAll}>
-            👀 {t('sd_flip_all')}
+            👀 {together ? t('sd_reveal_all_btn') : t('sd_flip_all')}
           </Button>
         )}
         <Button className="w-full" onClick={onReset}>
