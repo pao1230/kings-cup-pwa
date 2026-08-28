@@ -48,6 +48,7 @@ export default function ShowdownPage() {
   const setWinnerMode = useShowdown((s) => s.setWinnerMode);
   const setRevealMode = useShowdown((s) => s.setRevealMode);
   const deal = useShowdown((s) => s.deal);
+  const claim = useShowdown((s) => s.claim);
   const flip = useShowdown((s) => s.flip);
   const flipAll = useShowdown((s) => s.flipAll);
   const again = useShowdown((s) => s.again);
@@ -74,6 +75,12 @@ export default function ShowdownPage() {
       playDraw(settings.soundEnabled);
       haptic(settings.hapticEnabled, 15);
     }
+  };
+
+  const onClaim = (index: number) => {
+    claim(index);
+    playDraw(settings.soundEnabled);
+    haptic(settings.hapticEnabled, 15);
   };
 
   const onFlipAll = () => {
@@ -130,6 +137,7 @@ export default function ShowdownPage() {
           revealMode={revealMode}
           highest={highest}
           lowest={lowest}
+          onClaim={onClaim}
           onFlip={onFlip}
           onFlipAll={onFlipAll}
           onAgain={onAgain}
@@ -288,6 +296,7 @@ function Table({
   revealMode,
   highest,
   lowest,
+  onClaim,
   onFlip,
   onFlipAll,
   onAgain,
@@ -302,6 +311,7 @@ function Table({
   revealMode: RevealMode;
   highest: number[];
   lowest: number[];
+  onClaim: (index: number) => void;
   onFlip: (index: number) => void;
   onFlipAll: () => void;
   onAgain: () => void;
@@ -317,6 +327,8 @@ function Table({
   const winners = winnerMode === 'highest' ? highest : winnerMode === 'lowest' ? lowest : [];
   const losers = winnerMode === 'both_lose' ? [...highest, ...lowest] : [];
   const flippedCount = slots.filter((s) => s.flipped).length;
+  const claimedCount = slots.filter((s) => s.order !== null).length;
+  const allClaimed = slots.length > 0 && claimedCount === slots.length;
 
   return (
     <div className="flex min-h-full flex-col gap-4">
@@ -333,15 +345,19 @@ function Table({
       ) : (
         <div className="text-center">
           <p className="text-lg font-bold">
-            {together ? `🎬 ${t('sd_flip_hint_together')}` : `🏁 ${t('sd_flip_hint')}`}
+            {together
+              ? `🖐️ ${t(allClaimed ? 'sd_all_claimed' : 'sd_flip_hint_together')}`
+              : `🏁 ${t('sd_flip_hint')}`}
           </p>
-          {!together && (
-            <p className="mt-1 text-sm text-muted tabular-nums">
-              {t('sd_flipped_progress')
-                .replace('{a}', String(flippedCount))
-                .replace('{b}', String(slots.length))}
-            </p>
-          )}
+          <p className="mt-1 text-sm text-muted tabular-nums">
+            {together
+              ? t('sd_claimed_progress')
+                  .replace('{a}', String(claimedCount))
+                  .replace('{b}', String(slots.length))
+              : t('sd_flipped_progress')
+                  .replace('{a}', String(flippedCount))
+                  .replace('{b}', String(slots.length))}
+          </p>
         </div>
       )}
 
@@ -387,21 +403,22 @@ function Table({
                   badge={badge}
                   dim={dim}
                 />
-              ) : together ? (
-                // Reveal-together mode: cards wait face-down, flipped by the button.
+              ) : together && claimed ? (
+                // Reveal-together: claimed but still face-down — shows its colour,
+                // waits for the single reveal.
                 <div
                   className="w-full"
                   style={
                     animate ? { animation: `card-toss 0.4s ease-out ${i * 0.07}s both` } : undefined
                   }
                 >
-                  <CardBackTile />
+                  <CardBackTile color={color} owner={(slot.order as number) + 1} />
                 </div>
               ) : (
                 <button
                   type="button"
-                  onClick={() => onFlip(i)}
-                  aria-label={t('sd_flip_card')}
+                  onClick={() => (together ? onClaim(i) : onFlip(i))}
+                  aria-label={t(together ? 'sd_claim_card' : 'sd_flip_card')}
                   className="block w-full rounded-xl transition active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                   style={
                     animate
@@ -423,9 +440,13 @@ function Table({
           <Button variant="primary" full onClick={onAgain}>
             🔄 {t('sd_deal_again')}
           </Button>
+        ) : together ? (
+          <Button variant="primary" full disabled={!allClaimed} onClick={onFlipAll}>
+            👀 {allClaimed ? t('sd_reveal_all_btn') : t('sd_reveal_waiting')}
+          </Button>
         ) : (
           <Button variant="primary" full onClick={onFlipAll}>
-            👀 {together ? t('sd_reveal_all_btn') : t('sd_flip_all')}
+            👀 {t('sd_flip_all')}
           </Button>
         )}
         <Button className="w-full" onClick={onReset}>
@@ -505,18 +526,27 @@ function OwnerChip({ color, owner }: { color: string; owner: number }) {
   );
 }
 
-// Face-down card as it sits on the table — neutral / colourless until a player
-// claims it by pressing (then it flips face up in that player's colour).
-function CardBackTile() {
+// Face-down card as it sits on the table. Neutral / colourless until a player
+// claims it; once claimed (reveal-together mode) it shows the owner's colour ring
+// and number while staying face-down, until the group reveal flips it.
+function CardBackTile({ color, owner }: { color?: string; owner?: number } = {}) {
+  const claimed = !!color;
   return (
     <div
-      className="relative flex aspect-[3/4.2] w-full items-center justify-center rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 shadow-xl"
-      style={{ boxShadow: '0 0 0 2px rgba(255,255,255,0.15), 0 6px 14px rgba(0,0,0,0.4)' }}
+      className={`relative flex aspect-[3/4.2] w-full items-center justify-center rounded-xl shadow-xl ${
+        claimed ? 'bg-gradient-to-br from-brand to-brand-strong' : 'bg-gradient-to-br from-slate-500 to-slate-700'
+      }`}
+      style={{
+        boxShadow: claimed
+          ? `0 0 0 3px ${color}, 0 6px 14px rgba(0,0,0,0.4)`
+          : '0 0 0 2px rgba(255,255,255,0.15), 0 6px 14px rgba(0,0,0,0.4)',
+      }}
     >
       <div className="absolute inset-1 rounded-lg border-2 border-white/25" />
-      <span className="text-3xl opacity-80" aria-hidden>
+      <span className={`text-3xl ${claimed ? '' : 'opacity-80'}`} aria-hidden>
         👑
       </span>
+      {claimed && owner !== undefined && <OwnerChip color={color as string} owner={owner} />}
     </div>
   );
 }

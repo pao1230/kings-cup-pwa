@@ -86,8 +86,9 @@ interface ShowdownState {
   setWinnerMode: (mode: WinnerMode) => void;
   setRevealMode: (mode: RevealMode) => void;
   deal: () => void; // leave setup, deal one face-down card per player
-  flip: (slotIndex: number) => void; // turn one card face up (any order)
-  flipAll: () => void; // turn over every remaining card at once
+  claim: (slotIndex: number) => void; // reveal-together: take a card, keep it face-down
+  flip: (slotIndex: number) => void; // reveal-each: take a card and turn it face up
+  flipAll: () => void; // turn over every card at once (claiming any leftovers)
   again: () => void; // re-deal with the same players / mode
   reset: () => void; // back to the setup screen
 }
@@ -163,6 +164,18 @@ export const useShowdown = create<ShowdownState>((set, get) => ({
     set({ phase: 'playing', slots, highest: [], lowest: [] });
   },
 
+  claim: (slotIndex) => {
+    const { phase, slots } = get();
+    if (phase !== 'playing') return;
+    const slot = slots[slotIndex];
+    if (!slot || slot.order !== null) return; // already claimed
+    // Take the next colour in press order, but leave the card face-down.
+    const claimed = slots.filter((s) => s.order !== null).length;
+    set({
+      slots: slots.map((s, i) => (i === slotIndex ? { ...s, order: claimed } : s)),
+    });
+  },
+
   flip: (slotIndex) => {
     const { phase, slots } = get();
     if (phase !== 'playing') return;
@@ -183,11 +196,14 @@ export const useShowdown = create<ShowdownState>((set, get) => ({
   flipAll: () => {
     const { phase, slots } = get();
     if (phase !== 'playing') return;
-    // Give any not-yet-claimed cards the remaining colours, in table order.
+    // Flip everything at once. Cards already claimed keep their colour; any that
+    // were never picked get the remaining colours, in table order.
     let claimed = slots.filter((s) => s.order !== null).length;
-    const nextSlots = slots.map((s) =>
-      s.flipped ? s : { ...s, flipped: true, order: claimed++ },
-    );
+    const nextSlots = slots.map((s) => ({
+      ...s,
+      flipped: true,
+      order: s.order !== null ? s.order : claimed++,
+    }));
     set({ slots: nextSlots, phase: 'result', ...scoreSlots(nextSlots) });
   },
 
