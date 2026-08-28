@@ -24,6 +24,13 @@ const GAMES: {
     descKey: 'home_ridethebus_desc',
     gradient: 'from-amber-500 to-orange-600',
   },
+  {
+    to: '/showdown',
+    emoji: '🃏',
+    nameKey: 'sd_title',
+    descKey: 'home_showdown_desc',
+    gradient: 'from-sky-500 to-indigo-600',
+  },
 ];
 
 export default function HomePage() {

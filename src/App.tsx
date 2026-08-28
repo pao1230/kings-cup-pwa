@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import GamePage from './pages/GamePage';
 import RideTheBusPage from './pages/RideTheBusPage';
+import ShowdownPage from './pages/ShowdownPage';
 import RulesPage from './pages/RulesPage';
 import RuleEditPage from './pages/RuleEditPage';
 import RuleSetsPage from './pages/RuleSetsPage';
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/kings-cup" element={<GamePage />} />
         <Route path="/ride-the-bus" element={<RideTheBusPage />} />
+        <Route path="/showdown" element={<ShowdownPage />} />
         <Route path="/rules" element={<RulesPage />} />
         <Route path="/rules/:rank" element={<RuleEditPage />} />
         <Route path="/rulesets" element={<RuleSetsPage />} />
