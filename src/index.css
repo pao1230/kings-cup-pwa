@@ -69,6 +69,23 @@ body {
   }
 }
 
+/* Cards being tossed onto the table (High-Low Showdown): drop in from above
+   with a little overshoot. The wrapper owns the final position + rotation, so
+   this only animates a vertical drop + fade and won't fight that transform. */
+@keyframes card-toss {
+  0% {
+    transform: translateY(-45vh) scale(0.7);
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
 /* Utility: min 48x48 tap target (NFR-5). */
 .tap {
   min-width: 48px;
