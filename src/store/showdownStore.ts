@@ -58,6 +58,9 @@ export interface ShowdownSlot {
   card: Card; // the card dealt to this position
   owner: number; // player index (= deal position) this card belongs to
   flipped: boolean; // has it been turned face up yet?
+  x: number; // where it landed on the table, as a 0–100 % of the surface
+  y: number;
+  rot: number; // the angle it landed at, in degrees
 }
 
 interface ShowdownState {
@@ -79,6 +82,28 @@ interface ShowdownState {
 
 const clampPlayers = (n: number) =>
   Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Math.round(n)));
+
+// Scatter `n` cards across the table like they were tossed there: a loose,
+// row-based spread (rows centred so an incomplete last row doesn't clump to one
+// side) with a random jitter and tilt on each card. Returned as 0–100 % coords.
+function tossPositions(n: number): { x: number; y: number; rot: number }[] {
+  const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  const cols = Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  const cellH = 100 / rows;
+  const out: { x: number; y: number; rot: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const row = Math.floor(i / cols);
+    const inRow = Math.min(cols, n - row * cols); // items on this row
+    const idx = i - row * cols;
+    const cellW = 100 / inRow;
+    const x = clamp(cellW * (idx + 0.5) + rnd(-cellW * 0.2, cellW * 0.2), 15, 85);
+    const y = clamp(cellH * (row + 0.5) + rnd(-cellH * 0.18, cellH * 0.18), 16, 84);
+    out.push({ x, y, rot: rnd(-15, 15) });
+  }
+  return out;
+}
 
 // Score the fully-revealed table: who holds the highest and lowest card.
 function scoreSlots(slots: ShowdownSlot[]): { highest: number[]; lowest: number[] } {
@@ -112,9 +137,10 @@ export const useShowdown = create<ShowdownState>((set, get) => ({
 
   deal: () => {
     const { playerCount } = get();
+    const pos = tossPositions(playerCount);
     const slots: ShowdownSlot[] = shuffledDeck()
       .slice(0, playerCount)
-      .map((card, i) => ({ card, owner: i, flipped: false }));
+      .map((card, i) => ({ card, owner: i, flipped: false, ...pos[i] }));
     set({ phase: 'playing', slots, highest: [], lowest: [] });
   },
 

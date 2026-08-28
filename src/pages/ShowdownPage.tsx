@@ -5,7 +5,6 @@ import {
   WINNER_MODES,
   MIN_PLAYERS,
   MAX_PLAYERS,
-  cardValue,
   type WinnerMode,
   type ShowdownSlot,
 } from '../store/showdownStore';
@@ -293,48 +292,60 @@ function Table({
         </div>
       )}
 
-      {/* The table of cards */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* The table — a felt surface with cards tossed onto it, left wherever
+          they landed (each card carries its own %-position and tilt). */}
+      <div
+        className="relative flex-1 overflow-hidden rounded-3xl border-4 border-[#5c3a21] shadow-inner"
+        style={{
+          minHeight: '20rem',
+          background:
+            'radial-gradient(ellipse at 50% 42%, #2e8f5b 0%, #1b7346 45%, #0f4f30 100%)',
+          boxShadow: 'inset 0 0 60px rgba(0,0,0,0.45)',
+        }}
+      >
         {slots.map((slot, i) => {
           const color = PLAYER_COLORS[slot.owner];
           const isWinner = winners.includes(slot.owner);
           const isLoser = losers.includes(slot.owner);
           const badge = done ? (isWinner ? '👑' : isLoser ? '💀' : undefined) : undefined;
+          const dim = done && (winners.length > 0 || losers.length > 0) && !isWinner && !isLoser;
+          const highlighted = done && (isWinner || isLoser);
           return (
-            <div key={slot.owner} className="flex flex-col items-center gap-1">
+            <div
+              key={slot.owner}
+              className="absolute w-[4rem] sm:w-[4.75rem]"
+              style={{
+                left: `${slot.x}%`,
+                top: `${slot.y}%`,
+                transform: `translate(-50%, -50%) rotate(${slot.rot}deg)`,
+                zIndex: highlighted ? 20 : 10 - Math.floor(i / 2),
+              }}
+            >
               {slot.flipped ? (
                 <FaceUpTile
                   card={slot.card}
-                  ring={color.hex}
+                  owner={slot.owner + 1}
+                  color={color.hex}
                   animate={animate}
                   animKey={i}
                   badge={badge}
-                  dim={done && (winners.length > 0 || losers.length > 0) && !isWinner && !isLoser}
+                  dim={dim}
                 />
               ) : (
                 <button
                   type="button"
                   onClick={() => onFlip(i)}
                   aria-label={t('sd_flip_this').replace('{n}', String(slot.owner + 1))}
-                  className="tap w-full rounded-2xl transition active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  className="block w-full rounded-xl transition active:scale-[0.94] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  style={
+                    animate
+                      ? { animation: `card-toss 0.4s ease-out ${i * 0.07}s both` }
+                      : undefined
+                  }
                 >
-                  <CardBackTile ring={color.hex} badge={String(slot.owner + 1)} />
+                  <CardBackTile color={color.hex} owner={slot.owner + 1} />
                 </button>
               )}
-              <span
-                className="flex items-center gap-1 text-sm font-semibold"
-                style={{ color: color.hex }}
-              >
-                <span
-                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[0.65rem] text-white"
-                  style={{ backgroundColor: color.hex }}
-                >
-                  {slot.owner + 1}
-                </span>
-                {slot.flipped
-                  ? t('sd_card_value').replace('{v}', String(cardValue(slot.card)))
-                  : ''}
-              </span>
             </div>
           );
         })}
@@ -416,38 +427,47 @@ function ResultBanner({
 
 // ── Card tiles ─────────────────────────────────────────────────────────────
 
-// Face-down card with a coloured owner ring + player-number badge.
-function CardBackTile({ ring, badge }: { ring: string; badge: string }) {
+// A small owner chip (coloured circle + player number) pinned to a card corner.
+function OwnerChip({ color, owner }: { color: string; owner: number }) {
+  return (
+    <span
+      className="absolute -left-1.5 -top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white shadow"
+      style={{ backgroundColor: color }}
+    >
+      {owner}
+    </span>
+  );
+}
+
+// Face-down card as it sits on the table: coloured owner ring + number chip.
+function CardBackTile({ color, owner }: { color: string; owner: number }) {
   return (
     <div
-      className="relative flex aspect-[3/4.2] w-full items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-strong shadow-lg"
-      style={{ boxShadow: `0 0 0 4px ${ring}` }}
+      className="relative flex aspect-[3/4.2] w-full items-center justify-center rounded-xl bg-gradient-to-br from-brand to-brand-strong shadow-xl"
+      style={{ boxShadow: `0 0 0 3px ${color}, 0 6px 14px rgba(0,0,0,0.4)` }}
     >
-      <div className="absolute inset-1.5 rounded-xl border-2 border-white/30" />
-      <span className="text-4xl" aria-hidden>
+      <div className="absolute inset-1 rounded-lg border-2 border-white/30" />
+      <span className="text-3xl" aria-hidden>
         👑
       </span>
-      <span
-        className="absolute -right-1.5 -top-1.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-white shadow"
-        style={{ backgroundColor: ring }}
-      >
-        {badge}
-      </span>
+      <OwnerChip color={color} owner={owner} />
     </div>
   );
 }
 
-// Face-up card with a coloured owner ring and an optional 👑 / 💀 badge.
+// Face-up card with a coloured owner ring, number chip, and 👑 / 💀 badge.
 function FaceUpTile({
   card,
-  ring,
+  owner,
+  color,
   animate,
   animKey,
   badge,
   dim,
 }: {
   card: Card;
-  ring: string;
+  owner: number;
+  color: string;
   animate: boolean;
   animKey: string | number;
   badge?: string;
@@ -458,16 +478,20 @@ function FaceUpTile({
   return (
     <div
       key={animKey}
-      className={`relative flex aspect-[3/4.2] w-full flex-col justify-between rounded-2xl border-2 bg-white p-2 shadow-lg transition ${
+      className={`relative flex aspect-[3/4.2] w-full flex-col justify-between rounded-xl border-2 bg-white p-1.5 transition ${
         red ? 'text-rose-600' : 'text-neutral-900'
       } ${animate ? 'animate-card-flip' : ''} ${dim ? 'opacity-45' : ''}`}
-      style={{ borderColor: ring, boxShadow: `0 0 0 3px ${ring}` }}
+      style={{
+        borderColor: color,
+        boxShadow: `0 0 0 3px ${color}, 0 6px 14px rgba(0,0,0,0.4)`,
+      }}
     >
-      <span className="text-lg font-bold leading-none">{card.rank}</span>
-      <span className="self-center text-4xl leading-none" aria-hidden>
+      <span className="text-base font-bold leading-none">{card.rank}</span>
+      <span className="self-center text-3xl leading-none" aria-hidden>
         {symbol}
       </span>
-      <span className="rotate-180 self-end text-lg font-bold leading-none">{card.rank}</span>
+      <span className="rotate-180 self-end text-base font-bold leading-none">{card.rank}</span>
+      <OwnerChip color={color} owner={owner} />
       {badge && (
         <span className="absolute -right-2 -top-2 text-2xl drop-shadow" aria-hidden>
           {badge}
