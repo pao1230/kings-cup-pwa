@@ -2,9 +2,11 @@ import { useState } from 'react';
 import {
   useShowdown,
   PLAYER_COLORS,
+  WINNER_MODES,
   MIN_PLAYERS,
   MAX_PLAYERS,
   cardValue,
+  type WinnerMode,
   type ShowdownSlot,
 } from '../store/showdownStore';
 import { useSettings } from '../store/settingsStore';
@@ -17,20 +19,28 @@ import { useWakeLock } from '../lib/wakeLock';
 import { haptic } from '../lib/util';
 import { playDraw, playWin } from '../lib/sound';
 
+// Short label shown on the win-condition selector buttons.
+const MODE_LABEL: Record<WinnerMode, StringKey> = {
+  highest: 'sd_mode_highest',
+  lowest: 'sd_mode_lowest',
+  both_lose: 'sd_mode_both_lose',
+};
+
 export default function ShowdownPage() {
   const t = useT();
   const settings = useSettings();
 
   const playerCount = useShowdown((s) => s.playerCount);
+  const winnerMode = useShowdown((s) => s.winnerMode);
   const phase = useShowdown((s) => s.phase);
   const slots = useShowdown((s) => s.slots);
-  const currentPlayer = useShowdown((s) => s.currentPlayer);
   const highest = useShowdown((s) => s.highest);
   const lowest = useShowdown((s) => s.lowest);
   const setPlayerCount = useShowdown((s) => s.setPlayerCount);
+  const setWinnerMode = useShowdown((s) => s.setWinnerMode);
   const deal = useShowdown((s) => s.deal);
-  const claim = useShowdown((s) => s.claim);
-  const reveal = useShowdown((s) => s.reveal);
+  const flip = useShowdown((s) => s.flip);
+  const flipAll = useShowdown((s) => s.flipAll);
   const again = useShowdown((s) => s.again);
   const reset = useShowdown((s) => s.reset);
 
@@ -39,23 +49,26 @@ export default function ShowdownPage() {
   // Keep the screen awake while a round is being set up or played.
   useWakeLock(phase !== 'setup');
 
-  const claimedCount = slots.filter((s) => s.owner !== null).length;
-  const allClaimed = slots.length > 0 && claimedCount === slots.length;
-
   const onDeal = () => {
     deal();
     playDraw(settings.soundEnabled);
     haptic(settings.hapticEnabled, 12);
   };
 
-  const onClaim = (index: number) => {
-    claim(index);
-    playDraw(settings.soundEnabled);
-    haptic(settings.hapticEnabled, 15);
+  const onFlip = (index: number) => {
+    const wasLast = slots.filter((s) => !s.flipped).length === 1;
+    flip(index);
+    if (wasLast) {
+      playWin(settings.soundEnabled);
+      haptic(settings.hapticEnabled, [20, 40, 20, 40, 60]);
+    } else {
+      playDraw(settings.soundEnabled);
+      haptic(settings.hapticEnabled, 15);
+    }
   };
 
-  const onReveal = () => {
-    reveal();
+  const onFlipAll = () => {
+    flipAll();
     playWin(settings.soundEnabled);
     haptic(settings.hapticEnabled, [20, 40, 20, 40, 60]);
   };
@@ -68,7 +81,7 @@ export default function ShowdownPage() {
 
   return (
     <div className="flex min-h-full flex-col gap-4">
-      {/* Header: title (how-to toggle) + progress */}
+      {/* Header: title (how-to toggle) + player count */}
       <div className="flex items-center justify-between gap-2 text-sm">
         <button
           type="button"
@@ -90,30 +103,23 @@ export default function ShowdownPage() {
       {phase === 'setup' && (
         <Setup
           playerCount={playerCount}
-          onChange={setPlayerCount}
+          winnerMode={winnerMode}
+          onCount={setPlayerCount}
+          onMode={setWinnerMode}
           onDeal={onDeal}
           t={t}
         />
       )}
 
-      {phase === 'claiming' && (
-        <Claiming
+      {phase !== 'setup' && (
+        <Table
           slots={slots}
-          currentPlayer={currentPlayer}
-          allClaimed={allClaimed}
-          onClaim={onClaim}
-          onReveal={onReveal}
-          onReset={reset}
-          animate={settings.animationEnabled}
-          t={t}
-        />
-      )}
-
-      {phase === 'revealed' && (
-        <Revealed
-          slots={slots}
+          phase={phase}
+          winnerMode={winnerMode}
           highest={highest}
           lowest={lowest}
+          onFlip={onFlip}
+          onFlipAll={onFlipAll}
           onAgain={onAgain}
           onReset={reset}
           animate={settings.animationEnabled}
@@ -125,20 +131,24 @@ export default function ShowdownPage() {
   );
 }
 
-// ── Setup: pick how many players are in ────────────────────────────────────
+// ── Setup: player count + win condition ────────────────────────────────────
 function Setup({
   playerCount,
-  onChange,
+  winnerMode,
+  onCount,
+  onMode,
   onDeal,
   t,
 }: {
   playerCount: number;
-  onChange: (n: number) => void;
+  winnerMode: WinnerMode;
+  onCount: (n: number) => void;
+  onMode: (m: WinnerMode) => void;
   onDeal: () => void;
   t: (key: StringKey) => string;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 py-6 text-center">
+    <div className="flex flex-1 flex-col items-center gap-6 py-4 text-center">
       <div>
         <h2 className="text-2xl font-bold">{t('sd_setup_title')}</h2>
         <p className="mt-1 text-muted">{t('sd_setup_sub')}</p>
@@ -148,7 +158,7 @@ function Setup({
       <div className="flex items-center gap-5">
         <button
           type="button"
-          onClick={() => onChange(playerCount - 1)}
+          onClick={() => onCount(playerCount - 1)}
           disabled={playerCount <= MIN_PLAYERS}
           aria-label={t('sd_fewer')}
           className="tap flex h-14 w-14 items-center justify-center rounded-full bg-surface text-3xl font-bold text-text shadow disabled:opacity-30"
@@ -161,7 +171,7 @@ function Setup({
         </div>
         <button
           type="button"
-          onClick={() => onChange(playerCount + 1)}
+          onClick={() => onCount(playerCount + 1)}
           disabled={playerCount >= MAX_PLAYERS}
           aria-label={t('sd_more')}
           className="tap flex h-14 w-14 items-center justify-center rounded-full bg-surface text-3xl font-bold text-text shadow disabled:opacity-30"
@@ -183,102 +193,57 @@ function Setup({
         ))}
       </div>
 
-      <Button variant="primary" onClick={onDeal} className="mt-2 px-8 text-lg">
+      {/* Win condition */}
+      <div className="w-full">
+        <p className="mb-2 text-sm font-semibold text-muted">{t('sd_winner_mode')}</p>
+        <div className="flex flex-col gap-2">
+          {WINNER_MODES.map((mode) => {
+            const active = winnerMode === mode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => onMode(mode)}
+                aria-pressed={active}
+                className={`tap flex items-center justify-between rounded-2xl border px-4 py-3 text-left font-semibold transition ${
+                  active
+                    ? 'border-brand bg-brand/10 text-brand'
+                    : 'border-border bg-surface text-text'
+                }`}
+              >
+                <span>
+                  {mode === 'both_lose' ? '💀' : '👑'} {t(MODE_LABEL[mode])}
+                </span>
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-full border-2 text-xs ${
+                    active ? 'border-brand bg-brand text-white' : 'border-border'
+                  }`}
+                  aria-hidden
+                >
+                  {active ? '✓' : ''}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <Button variant="primary" onClick={onDeal} className="mt-1 px-8 text-lg">
         🃏 {t('sd_deal')}
       </Button>
     </div>
   );
 }
 
-// ── Claiming: each player takes a face-down card in turn ────────────────────
-function Claiming({
+// ── Table: cards laid out; tap to flip (any order), then the result ─────────
+function Table({
   slots,
-  currentPlayer,
-  allClaimed,
-  onClaim,
-  onReveal,
-  onReset,
-  animate,
-  t,
-}: {
-  slots: ShowdownSlot[];
-  currentPlayer: number;
-  allClaimed: boolean;
-  onClaim: (index: number) => void;
-  onReveal: () => void;
-  onReset: () => void;
-  animate: boolean;
-  t: (key: StringKey) => string;
-}) {
-  const color = PLAYER_COLORS[currentPlayer];
-  return (
-    <div className="flex min-h-full flex-col gap-4">
-      {/* Turn prompt */}
-      {allClaimed ? (
-        <p className="text-center text-lg font-bold">{t('sd_all_ready')}</p>
-      ) : (
-        <p
-          className="flex items-center justify-center gap-2 text-center text-lg font-bold"
-          style={{ color: color.hex }}
-        >
-          <span
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm text-white"
-            style={{ backgroundColor: color.hex }}
-          >
-            {currentPlayer + 1}
-          </span>
-          {t('sd_your_turn').replace('{n}', String(currentPlayer + 1))}
-        </p>
-      )}
-
-      {/* Face-down cards to claim */}
-      <div className="grid grid-cols-2 gap-3">
-        {slots.map((slot, i) => {
-          const claimed = slot.owner !== null;
-          const owner = claimed ? PLAYER_COLORS[slot.owner as number] : null;
-          return (
-            <button
-              key={i}
-              type="button"
-              disabled={claimed || allClaimed}
-              onClick={() => onClaim(i)}
-              aria-label={
-                claimed
-                  ? t('sd_claimed_by').replace('{n}', String((slot.owner as number) + 1))
-                  : t('sd_pick_this')
-              }
-              className={`tap relative aspect-[3/4.2] rounded-2xl transition active:scale-[0.97] ${
-                claimed ? 'cursor-default' : 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand'
-              }`}
-            >
-              <CardBackTile
-                animate={animate && !claimed}
-                ring={owner?.hex}
-                badge={claimed ? String((slot.owner as number) + 1) : undefined}
-              />
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Controls */}
-      <div className="sticky bottom-0 -mx-4 mt-auto flex flex-col gap-2 border-t border-border/60 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur">
-        <Button variant="primary" full disabled={!allClaimed} onClick={onReveal}>
-          👀 {t('sd_reveal')}
-        </Button>
-        <Button className="w-full" onClick={onReset}>
-          {t('sd_change_players')}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// ── Revealed: flip everything and crown the winner ─────────────────────────
-function Revealed({
-  slots,
+  phase,
+  winnerMode,
   highest,
   lowest,
+  onFlip,
+  onFlipAll,
   onAgain,
   onReset,
   animate,
@@ -286,55 +251,76 @@ function Revealed({
   t,
 }: {
   slots: ShowdownSlot[];
+  phase: 'playing' | 'result';
+  winnerMode: WinnerMode;
   highest: number[];
   lowest: number[];
+  onFlip: (index: number) => void;
+  onFlipAll: () => void;
   onAgain: () => void;
   onReset: () => void;
   animate: boolean;
   alcoholFree: boolean;
   t: (key: StringKey) => string;
 }) {
-  // Order the reveal grid by player number so colours read left-to-right.
-  const byPlayer = [...slots].sort(
-    (a, b) => (a.owner as number) - (b.owner as number),
-  );
+  const done = phase === 'result';
 
-  const nameList = (players: number[]) =>
-    players.map((p) => `#${p + 1}`).join(', ');
+  // Who is highlighted, and how, once everything is revealed.
+  const winners = winnerMode === 'highest' ? highest : winnerMode === 'lowest' ? lowest : [];
+  const losers = winnerMode === 'both_lose' ? [...highest, ...lowest] : [];
+  const flippedCount = slots.filter((s) => s.flipped).length;
 
   return (
     <div className="flex min-h-full flex-col gap-4">
-      {/* Result banner */}
-      <div className="animate-pop-in rounded-2xl border border-border bg-surface p-4 text-center">
-        <p className="text-lg font-bold">
-          👑 {t(highest.length > 1 ? 'sd_highest_tie' : 'sd_highest')}{' '}
-          <span style={{ color: PLAYER_COLORS[highest[0]].hex }}>{nameList(highest)}</span>
-        </p>
-        <p className="mt-1 text-lg font-bold">
-          💧 {t(lowest.length > 1 ? 'sd_lowest_tie' : 'sd_lowest')}{' '}
-          <span style={{ color: PLAYER_COLORS[lowest[0]].hex }}>{nameList(lowest)}</span>
-        </p>
-        <p className="mt-2 text-sm text-muted">
-          {t(alcoholFree ? 'sd_result_hint_af' : 'sd_result_hint')}
-        </p>
-      </div>
+      {/* Prompt / result banner */}
+      {done ? (
+        <ResultBanner
+          winnerMode={winnerMode}
+          winners={winners}
+          highest={highest}
+          lowest={lowest}
+          alcoholFree={alcoholFree}
+          t={t}
+        />
+      ) : (
+        <div className="text-center">
+          <p className="text-lg font-bold">🏁 {t('sd_flip_hint')}</p>
+          <p className="mt-1 text-sm text-muted tabular-nums">
+            {t('sd_flipped_progress')
+              .replace('{a}', String(flippedCount))
+              .replace('{b}', String(slots.length))}
+          </p>
+        </div>
+      )}
 
-      {/* Cards, face up */}
+      {/* The table of cards */}
       <div className="grid grid-cols-2 gap-3">
-        {byPlayer.map((slot, i) => {
-          const player = slot.owner as number;
-          const color = PLAYER_COLORS[player];
-          const isHigh = highest.includes(player);
-          const isLow = lowest.includes(player);
+        {slots.map((slot, i) => {
+          const color = PLAYER_COLORS[slot.owner];
+          const isWinner = winners.includes(slot.owner);
+          const isLoser = losers.includes(slot.owner);
+          const badge = done ? (isWinner ? '👑' : isLoser ? '💀' : undefined) : undefined;
           return (
-            <div key={player} className="flex flex-col items-center gap-1">
-              <FaceUpTile
-                card={slot.card}
-                ring={color.hex}
-                animate={animate}
-                animKey={i}
-                badge={isHigh ? '👑' : isLow ? '💧' : undefined}
-              />
+            <div key={slot.owner} className="flex flex-col items-center gap-1">
+              {slot.flipped ? (
+                <FaceUpTile
+                  card={slot.card}
+                  ring={color.hex}
+                  animate={animate}
+                  animKey={i}
+                  badge={badge}
+                  dim={done && (winners.length > 0 || losers.length > 0) && !isWinner && !isLoser}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onFlip(i)}
+                  aria-label={t('sd_flip_this').replace('{n}', String(slot.owner + 1))}
+                  className="tap w-full rounded-2xl transition active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  <CardBackTile ring={color.hex} badge={String(slot.owner + 1)} />
+                </button>
+              )}
               <span
                 className="flex items-center gap-1 text-sm font-semibold"
                 style={{ color: color.hex }}
@@ -343,9 +329,11 @@ function Revealed({
                   className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[0.65rem] text-white"
                   style={{ backgroundColor: color.hex }}
                 >
-                  {player + 1}
+                  {slot.owner + 1}
                 </span>
-                {t('sd_card_value').replace('{v}', String(cardValue(slot.card)))}
+                {slot.flipped
+                  ? t('sd_card_value').replace('{v}', String(cardValue(slot.card)))
+                  : ''}
               </span>
             </div>
           );
@@ -354,9 +342,15 @@ function Revealed({
 
       {/* Controls */}
       <div className="sticky bottom-0 -mx-4 mt-auto flex flex-col gap-2 border-t border-border/60 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur">
-        <Button variant="primary" full onClick={onAgain}>
-          🔄 {t('sd_deal_again')}
-        </Button>
+        {done ? (
+          <Button variant="primary" full onClick={onAgain}>
+            🔄 {t('sd_deal_again')}
+          </Button>
+        ) : (
+          <Button variant="primary" full onClick={onFlipAll}>
+            👀 {t('sd_flip_all')}
+          </Button>
+        )}
         <Button className="w-full" onClick={onReset}>
           {t('sd_change_players')}
         </Button>
@@ -365,63 +359,108 @@ function Revealed({
   );
 }
 
+// The result summary, worded to match the chosen win condition.
+function ResultBanner({
+  winnerMode,
+  winners,
+  highest,
+  lowest,
+  alcoholFree,
+  t,
+}: {
+  winnerMode: WinnerMode;
+  winners: number[];
+  highest: number[];
+  lowest: number[];
+  alcoholFree: boolean;
+  t: (key: StringKey) => string;
+}) {
+  const names = (players: number[]) => players.map((p) => `#${p + 1}`).join(', ');
+  const colorOf = (players: number[]) =>
+    players.length === 1 ? PLAYER_COLORS[players[0]].hex : undefined;
+
+  if (winnerMode === 'both_lose') {
+    return (
+      <div className="animate-pop-in rounded-2xl border border-danger/40 bg-danger/10 p-4 text-center">
+        <p className="text-lg font-bold text-danger">💀 {t('sd_both_lose_title')}</p>
+        <p className="mt-2 font-semibold">
+          👑 {t(highest.length > 1 ? 'sd_highest_tie' : 'sd_highest')}{' '}
+          <span style={{ color: colorOf(highest) }}>{names(highest)}</span>
+        </p>
+        <p className="mt-1 font-semibold">
+          💧 {t(lowest.length > 1 ? 'sd_lowest_tie' : 'sd_lowest')}{' '}
+          <span style={{ color: colorOf(lowest) }}>{names(lowest)}</span>
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          {t(alcoholFree ? 'sd_both_lose_hint_af' : 'sd_both_lose_hint')}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-pop-in rounded-2xl border border-brand/40 bg-brand/10 p-4 text-center">
+      <p className="text-xl font-bold">
+        👑 {t(winners.length > 1 ? 'sd_winner_tie' : 'sd_winner')}{' '}
+        <span style={{ color: colorOf(winners) }}>{names(winners)}</span>
+      </p>
+      <p className="mt-1 text-sm font-semibold text-muted">
+        {t(winnerMode === 'highest' ? 'sd_mode_highest' : 'sd_mode_lowest')}
+      </p>
+      <p className="mt-2 text-sm text-muted">
+        {t(alcoholFree ? 'sd_win_hint_af' : 'sd_win_hint')}
+      </p>
+    </div>
+  );
+}
+
 // ── Card tiles ─────────────────────────────────────────────────────────────
 
-// Face-down card with an optional coloured owner ring + player-number badge.
-function CardBackTile({
-  animate,
-  ring,
-  badge,
-}: {
-  animate: boolean;
-  ring?: string;
-  badge?: string;
-}) {
+// Face-down card with a coloured owner ring + player-number badge.
+function CardBackTile({ ring, badge }: { ring: string; badge: string }) {
   return (
     <div
-      className={`relative flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-strong shadow-lg ${
-        animate ? 'animate-pop-in' : ''
-      }`}
-      style={ring ? { boxShadow: `0 0 0 4px ${ring}`, opacity: 0.95 } : undefined}
+      className="relative flex aspect-[3/4.2] w-full items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-strong shadow-lg"
+      style={{ boxShadow: `0 0 0 4px ${ring}` }}
     >
       <div className="absolute inset-1.5 rounded-xl border-2 border-white/30" />
       <span className="text-4xl" aria-hidden>
         👑
       </span>
-      {badge && (
-        <span
-          className="absolute -right-1.5 -top-1.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-white shadow"
-          style={{ backgroundColor: ring }}
-        >
-          {badge}
-        </span>
-      )}
+      <span
+        className="absolute -right-1.5 -top-1.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-white shadow"
+        style={{ backgroundColor: ring }}
+      >
+        {badge}
+      </span>
     </div>
   );
 }
 
-// Face-up card with a coloured owner ring and an optional 👑 / 💧 badge.
+// Face-up card with a coloured owner ring and an optional 👑 / 💀 badge.
 function FaceUpTile({
   card,
   ring,
   animate,
   animKey,
   badge,
+  dim,
 }: {
   card: Card;
   ring: string;
   animate: boolean;
   animKey: string | number;
   badge?: string;
+  dim?: boolean;
 }) {
   const red = isRedSuit(card.suit);
   const symbol = SUIT_SYMBOL[card.suit];
   return (
     <div
       key={animKey}
-      className={`relative flex aspect-[3/4.2] w-full flex-col justify-between rounded-2xl border-2 bg-white p-2 shadow-lg ${
+      className={`relative flex aspect-[3/4.2] w-full flex-col justify-between rounded-2xl border-2 bg-white p-2 shadow-lg transition ${
         red ? 'text-rose-600' : 'text-neutral-900'
-      } ${animate ? 'animate-card-flip' : ''}`}
+      } ${animate ? 'animate-card-flip' : ''} ${dim ? 'opacity-45' : ''}`}
       style={{ borderColor: ring, boxShadow: `0 0 0 3px ${ring}` }}
     >
       <span className="text-lg font-bold leading-none">{card.rank}</span>
