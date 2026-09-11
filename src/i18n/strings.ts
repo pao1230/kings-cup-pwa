@@ -21,7 +21,9 @@ export const STRINGS = {
     home_kingscup_desc: 'จั่วไพ่ครบ 52 ใบ ทำตามกติกาของแต่ละใบ ปรับกติกาเองได้',
     home_ridethebus_desc: 'ทายไพ่ให้ถูก 4 ด่าน ทายผิดดื่มแล้วเริ่มใหม่ ผ่านครบชนะ',
     home_showdown_desc: 'แจกไพ่ลงโต๊ะ แย่งกันกดเปิด วัดสูง–ต่ำ ตั้งเงื่อนไขผู้ชนะได้',
+    home_insider_desc: 'เกมหาสายลับ! ช่วยกันทายคำ แต่มีสายลับแอบรู้คำตอบ — เปิดเว็บเกม',
     home_play: 'เล่นเลย',
+    insider_title: 'Insider',
 
     // game
     game_draw: 'จั่วไพ่',
@@ -227,7 +229,9 @@ export const STRINGS = {
     home_kingscup_desc: 'Draw all 52 cards and follow each card’s rule — fully editable',
     home_ridethebus_desc: 'Call four rounds right — miss and drink, clear them all to win',
     home_showdown_desc: 'Deal to the table, race to flip, score high & low — pick who wins',
+    home_insider_desc: 'Find the secret Insider who already knows the word — opens the web game',
     home_play: 'Play now',
+    insider_title: 'Insider',
 
     game_draw: 'Draw',
     game_remaining: 'Left',
