@@ -2,13 +2,16 @@ import { Link } from 'react-router-dom';
 import { useT } from '../i18n/useT';
 import type { StringKey } from '../i18n/strings';
 
-// The two playable games, shown as big tappable cards on the home screen.
+// The playable games, shown as big tappable cards on the home screen.
+// `external` cards link out to another site (opened in a new tab) instead of
+// an in-app route.
 const GAMES: {
   to: string;
   emoji: string;
   nameKey: StringKey;
   descKey: StringKey;
   gradient: string;
+  external?: boolean;
 }[] = [
   {
     to: '/kings-cup',
@@ -31,6 +34,14 @@ const GAMES: {
     descKey: 'home_showdown_desc',
     gradient: 'from-sky-500 to-indigo-600',
   },
+  {
+    to: 'https://insider-git-main-pao1230s-projects.vercel.app/',
+    emoji: '🕵️',
+    nameKey: 'insider_title',
+    descKey: 'home_insider_desc',
+    gradient: 'from-rose-500 to-red-600',
+    external: true,
+  },
 ];
 
 export default function HomePage() {
@@ -45,27 +56,41 @@ export default function HomePage() {
 
       {/* Game cards */}
       <div className="flex flex-col gap-4">
-        {GAMES.map((game) => (
-          <Link
-            key={game.to}
-            to={game.to}
-            className={`group relative overflow-hidden rounded-3xl bg-gradient-to-br ${game.gradient} p-5 text-white shadow-xl transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand`}
-          >
-            <div className="absolute -right-4 -top-4 text-8xl opacity-20 transition group-hover:scale-110" aria-hidden>
-              {game.emoji}
-            </div>
-            <div className="relative flex flex-col gap-2">
-              <span className="text-4xl" aria-hidden>
+        {GAMES.map((game) => {
+          const className = `group relative overflow-hidden rounded-3xl bg-gradient-to-br ${game.gradient} p-5 text-white shadow-xl transition active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand`;
+          const inner = (
+            <>
+              <div className="absolute -right-4 -top-4 text-8xl opacity-20 transition group-hover:scale-110" aria-hidden>
                 {game.emoji}
-              </span>
-              <h2 className="text-2xl font-bold">{t(game.nameKey)}</h2>
-              <p className="text-sm leading-relaxed text-white/90">{t(game.descKey)}</p>
-              <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold backdrop-blur">
-                ▶ {t('home_play')}
-              </span>
-            </div>
-          </Link>
-        ))}
+              </div>
+              <div className="relative flex flex-col gap-2">
+                <span className="text-4xl" aria-hidden>
+                  {game.emoji}
+                </span>
+                <h2 className="text-2xl font-bold">{t(game.nameKey)}</h2>
+                <p className="text-sm leading-relaxed text-white/90">{t(game.descKey)}</p>
+                <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-white/20 px-4 py-1.5 text-sm font-semibold backdrop-blur">
+                  {game.external ? '↗' : '▶'} {t('home_play')}
+                </span>
+              </div>
+            </>
+          );
+          return game.external ? (
+            <a
+              key={game.to}
+              href={game.to}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={className}
+            >
+              {inner}
+            </a>
+          ) : (
+            <Link key={game.to} to={game.to} className={className}>
+              {inner}
+            </Link>
+          );
+        })}
       </div>
 
       {/* Responsible-drinking note */}
